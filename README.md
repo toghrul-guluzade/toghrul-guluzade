@@ -20,10 +20,10 @@
 │  → AEROSPACE   → OS INTERNALS   → SYSTEM ARCHITECTURE   → COMPUTING HISTORY              |
 |                                                                                          |
 │  ACCOUNT METRICS                                                                         │
-│  REPOS       : __REPOS__                                                                 │
-│  STARS       : __STARS__                                                                 │
-│  LOC         : __LOC__                                                                   │
-│  LANGUAGES   : __LANGS__                                                                 │
+│  REPOS       : 15                                                                 │
+│  STARS       : 5                                                                 │
+│  LOC         : 1,080,964                                                                   │
+│  LANGUAGES   : TypeScript, HTML, C++, PLpgSQL                                                                 │
 │                                                                                          │
 │  CONTACT                                                                                 │
 │  → tguluzade19619@ada.edu.az                                                             │
