@@ -1,7 +1,5 @@
-# scripts/update_readme_stats.py
 import json
 import os
-import re
 import subprocess
 import tempfile
 from pathlib import Path
@@ -31,6 +29,7 @@ def gh_get(path: str):
 def paged_get(path: str):
     page = 1
     all_items = []
+
     while True:
         sep = "&" if "?" in path else "?"
         items = gh_get(f"{path}{sep}per_page=100&page={page}")
@@ -38,23 +37,26 @@ def paged_get(path: str):
             break
         all_items.extend(items)
         page += 1
+
     return all_items
 
 
 def list_owned_repos():
-    return paged_get(f"/users/{USERNAME}/repos?type=owner&sort=updated")
+    # Authenticated endpoint: includes your private repos too
+    repos = paged_get("/user/repos?affiliation=owner&sort=updated")
+    return repos
 
 
 def list_contributed_repos():
-    # Practical approximation:
-    # search recent public events for PushEvent/PRs and collect repo names.
-    # This is not perfect all-time coverage.
+    # Practical approximation from recent public activity
     events = paged_get(f"/users/{USERNAME}/events/public")
     repos = set()
+
     for e in events:
         repo = e.get("repo", {}).get("name")
         if repo:
             repos.add(repo)
+
     return sorted(repos)
 
 
@@ -64,14 +66,18 @@ def repo_languages(full_name: str):
 
 def clone_and_cloc(repo_full_name: str, temp_root: Path) -> int:
     repo_dir = temp_root / repo_full_name.replace("/", "__")
-    url = f"https://github.com/{repo_full_name}.git"
-    subprocess.run(
+
+    # Authenticated clone URL so private repos you own can be cloned
+    url = f"https://x-access-token:{TOKEN}@github.com/{repo_full_name}.git"
+
+    clone_result = subprocess.run(
         ["git", "clone", "--depth", "1", url, str(repo_dir)],
         check=False,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
-    if not repo_dir.exists():
+
+    if clone_result.returncode != 0 or not repo_dir.exists():
         return 0
 
     result = subprocess.run(
@@ -80,6 +86,7 @@ def clone_and_cloc(repo_full_name: str, temp_root: Path) -> int:
         capture_output=True,
         text=True,
     )
+
     if result.returncode != 0:
         return 0
 
@@ -88,8 +95,35 @@ def clone_and_cloc(repo_full_name: str, temp_root: Path) -> int:
     except json.JSONDecodeError:
         return 0
 
-    total = data.get("SUM", {}).get("code", 0)
-    return int(total)
+    return int(data.get("SUM", {}).get("code", 0))
+
+
+def format_top_languages(lang_bytes: dict, top_n: int = 4) -> str:
+    if not lang_bytes:
+        return "N/A"
+
+    sorted_langs = sorted(lang_bytes.items(), key=lambda x: x[1], reverse=True)
+    top_langs = [lang for lang, _ in sorted_langs[:top_n]]
+    return ", ".join(top_langs)
+
+
+def replace_marker_line(text: str, label: str, value: str) -> str:
+    lines = text.splitlines()
+    new_lines = []
+
+    prefix = f"{label}"
+    for line in lines:
+        if prefix in line:
+            left, sep, right = line.partition(prefix)
+            if sep:
+                rebuilt = left + prefix + value
+                if line.endswith("│"):
+                    width = len(line) - 1
+                    rebuilt = rebuilt[:width].ljust(width) + "│"
+                line = rebuilt
+        new_lines.append(line)
+
+    return "\n".join(new_lines) + "\n"
 
 
 def main():
@@ -99,38 +133,47 @@ def main():
     total_stars = sum(repo.get("stargazers_count", 0) for repo in owned)
 
     lang_bytes = {}
-    owned_names = [r["full_name"] for r in owned]
+    owned_names = [repo["full_name"] for repo in owned]
 
     for full_name in owned_names:
-        langs = repo_languages(full_name)
-        for lang, count in langs.items():
-            lang_bytes[lang] = lang_bytes.get(lang, 0) + count
+        try:
+            langs = repo_languages(full_name)
+            for lang, count in langs.items():
+                lang_bytes[lang] = lang_bytes.get(lang, 0) + count
+        except Exception:
+            continue
 
-    # Include contributed repos from public recent activity only.
+    # Recent public contributed repos not already owned by you
     contributed = [r for r in list_contributed_repos() if r not in owned_names]
 
     with tempfile.TemporaryDirectory() as td:
         root = Path(td)
         total_loc = 0
 
+        # Count LOC for your owned repos
         for full_name in owned_names:
             total_loc += clone_and_cloc(full_name, root)
 
-        for full_name in contributed[:20]:
+        # Count a limited number of recent public contributed repos
+        for full_name in contributed[:10]:
             total_loc += clone_and_cloc(full_name, root)
-            langs = repo_languages(full_name)
-            for lang, count in langs.items():
-                lang_bytes[lang] = lang_bytes.get(lang, 0) + count
+            try:
+                langs = repo_languages(full_name)
+                for lang, count in langs.items():
+                    lang_bytes[lang] = lang_bytes.get(lang, 0) + count
+            except Exception:
+                continue
 
-    top_langs = ", ".join(
-        lang for lang, _ in sorted(lang_bytes.items(), key=lambda x: x[1], reverse=True)[:4]
-    )
+    top_langs = format_top_languages(lang_bytes, top_n=4)
 
     text = README.read_text(encoding="utf-8")
+
+    # Simple exact marker replacement
     text = text.replace("__REPOS__", str(total_repos))
     text = text.replace("__STARS__", str(total_stars))
     text = text.replace("__LOC__", f"{total_loc:,}")
-    text = text.replace("__LANGS__", top_langs or "N/A")
+    text = text.replace("__LANGS__", top_langs)
+
     README.write_text(text, encoding="utf-8")
 
 
