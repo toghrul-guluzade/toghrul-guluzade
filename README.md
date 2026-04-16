@@ -13,8 +13,8 @@
 │                                                                                          │
 │  SKILLS MATRIX                                                                           │
 │  [●] C        [●] AVR        [●] GIT        [○] RTOS                                     │
-│  [●] C++      [●] STM32      [●] LINUX      [○] FPGA                                     │
-│  [●] ASM      [●] ARDUINO    [●] WSL        [○] DSP                                      │
+│  [●] C++      [●] ESP32      [●] LINUX      [○] FPGA                                     │
+│  [●] ASM      [●] ARDUINO    [●] WSL        [○] STM32                                    │
 │                                                                                          │
 │  INTERESTS                                                                               │
 │  → AEROSPACE   → OS INTERNALS   → SYSTEM ARCHITECTURE   → COMPUTING HISTORY              |
@@ -23,7 +23,7 @@
 │  REPOS       : 15                                                                        │
 │  STARS       : 5                                                                         │
 │  LOC         : 1,080,964                                                                 │
-│  LANGUAGES   : TypeScript, HTML, C++, PLpgSQL                                            │
+│  LANGUAGES   : C++, C, TypeScript, HTML, PLpgSQL                                         │
 │                                                                                          │
 │  CONTACT                                                                                 │
 │  → tguluzade19619@ada.edu.az                                                             │
