@@ -21,7 +21,7 @@
 |                                                                                          |
 │  ACCOUNT METRICS                                                                         │
 │  REPOS       : 15                                                                        │
-│  STARS       : 5                                                                         │
+│  STARS       : 10                                                                        │
 │  LOC         : 1,080,964                                                                 │
 │  LANGUAGES   : C++, C, TypeScript, HTML, PLpgSQL                                         │
 │                                                                                          │
